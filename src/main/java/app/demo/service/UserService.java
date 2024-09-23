@@ -4,10 +4,8 @@ import app.demo.domain.entity.UserEntity;
 import app.demo.domain.user.User;
 import app.demo.domain.user.UserLoginRequestBody;
 import app.demo.domain.user.UserRegisterRequestBody;
-import app.demo.exception.user.DuplicateUserException;
-import app.demo.exception.user.UserErrorCode;
-import app.demo.exception.user.UserLoginFailedException;
-import app.demo.exception.user.UserNotFoundException;
+import app.demo.exception.BaseException;
+import app.demo.exception.response.BaseResponseStatus;
 import app.demo.repository.UserEntityRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -30,7 +28,7 @@ public class UserService {
     @Transactional
     public User register(UserRegisterRequestBody userRegisterRequestBody) {
         userRepository.findByEmail(userRegisterRequestBody.email()).ifPresent(user -> {
-            throw new DuplicateUserException(userRegisterRequestBody.email());
+            throw new BaseException(BaseResponseStatus.EMAIL_DUPLICATION_ERROR);
         });
 
         // UserEntity.of 메서드로 String 타입의 email, password 를 UserEntity 타입으로 바꿈
