@@ -9,16 +9,24 @@ import app.demo.exception.response.BaseResponseStatus;
 import app.demo.repository.UserEntityRepository;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static app.demo.exception.response.BaseResponseStatus.*;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserDetailsService {
 
     private final UserEntityRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 01. 회원 가입
@@ -26,13 +34,13 @@ public class UserService {
      * @return User
      */
     @Transactional
-    public User register(UserRegisterRequestBody userRegisterRequestBody) {
+    public User register(@Valid UserRegisterRequestBody userRegisterRequestBody) {
         userRepository.findByEmail(userRegisterRequestBody.email()).ifPresent(user -> {
-            throw new BaseException(BaseResponseStatus.EMAIL_DUPLICATION_ERROR);
+            throw new BaseException(EMAIL_DUPLICATION_ERROR);
         });
 
         // UserEntity.of 메서드로 String 타입의 email, password 를 UserEntity 타입으로 바꿈
-        return User.from(userRepository.save(UserEntity.of(userRegisterRequestBody.email(), userRegisterRequestBody.password())));
+        return User.from(userRepository.save(UserEntity.of(userRegisterRequestBody.email(), passwordEncoder.encode(userRegisterRequestBody.password()))));
     }
 
     /**
@@ -40,7 +48,7 @@ public class UserService {
      * @param userLoginRequestBody email & password
      * @return User
      */
-    public User login(UserLoginRequestBody userLoginRequestBody) {
+    public User login(@Valid UserLoginRequestBody userLoginRequestBody) {
         UserEntity userEntity = userRepository.findByEmail(userLoginRequestBody.email())
                 .orElseThrow(EntityNotFoundException::new);
 
@@ -49,5 +57,18 @@ public class UserService {
         }
 
         return User.from(userEntity);
+    }
+
+    
+    // UserDetailsService 구현
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        UserEntity userEntity = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BaseException(ENTITY_NOT_FOUND));
+
+        if (!userEntity.isEnabled()) {
+            throw new BaseException(ACCOUNT_DELETED_ERROR);
+        }
+        return userEntity;
     }
 }

@@ -23,20 +23,26 @@ public class BaseControllerAdvice {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public BaseResponse<BaseResponseStatus> handleEntityNotFoundException(EntityNotFoundException e) {
-//        log.error("[EntityNotFoundException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
+        log.error("[EntityNotFoundException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
         return new BaseResponse<>(ENTITY_NOT_FOUND);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public BaseResponse<BaseResponseStatus> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-//        log.error("[MethodArgumentNotValidException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
+        log.error("[MethodArgumentNotValidException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
         return new BaseResponse<>(NOT_VALID_ERROR);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public BaseResponse<BaseResponseStatus> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
-//        log.error("[MissingServletRequestParameterException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
+        log.error("[MissingServletRequestParameterException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
         return new BaseResponse<>(NOT_VALID_ERROR);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public BaseResponse<BaseResponseStatus> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        log.error("[MethodArgumentTypeMismatchException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
+        return new BaseResponse<>(TYPE_MISMATCH_ERROR);
     }
 
     @ExceptionHandler(BindException.class)
@@ -44,17 +50,10 @@ public class BaseControllerAdvice {
         BindingResult bindingResult = e.getBindingResult();
         String bindCode = Objects.requireNonNull(bindingResult.getFieldError()).getCode();
 
-        switch (bindCode) {
-            case "NotBlank" -> {
-                return new BaseResponse<>(VALID_INPUT_BLANK);
-            }
+        if (Objects.requireNonNull(bindCode).equals("NotBlank")) {
+            return new BaseResponse<>(VALID_INPUT_BLANK);
         }
         return new BaseResponse<>(INVALID_URI_PATH);
-    }
-
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public BaseResponse<BaseResponseStatus> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
-        return new BaseResponse<>(TYPE_MISMATCH_ERROR);
     }
 
     @ExceptionHandler(BaseException.class)

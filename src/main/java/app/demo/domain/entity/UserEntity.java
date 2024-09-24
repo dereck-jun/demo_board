@@ -1,14 +1,18 @@
 package app.demo.domain.entity;
 
+import app.demo.domain.user.UserRole;
+import app.demo.domain.user.UserStatus;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.ZonedDateTime;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -17,7 +21,7 @@ import java.time.ZonedDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "update user set deleted_date_time = current_timestamp where user_id = ?")
 @SQLRestriction("deleted_date_time is null")
-public class UserEntity {
+public class UserEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,14 +30,10 @@ public class UserEntity {
 
     @Column(nullable = false, unique = true)
     @Setter(AccessLevel.PRIVATE)
-    @NotBlank
-    @Email
     private String email;
 
     @Column(nullable = false)
     @Setter(AccessLevel.PRIVATE)
-    @NotBlank
-    @Size(min = 8, max = 20)
     private String password;
 
     @Column(unique = true)
@@ -44,6 +44,16 @@ public class UserEntity {
 
     @Column
     private String description;
+
+    @Setter(AccessLevel.PRIVATE)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus userStatus;
+
+    @Setter(AccessLevel.PRIVATE)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole userRole;
 
     @Column(nullable = false, updatable = false)
     private ZonedDateTime createdDateTime;
@@ -58,6 +68,8 @@ public class UserEntity {
         UserEntity userEntity = new UserEntity();
         userEntity.setEmail(email);
         userEntity.setPassword(password);
+        userEntity.setUserStatus(UserStatus.ACTIVE);
+        userEntity.setUserRole(UserRole.USER);
         return userEntity;
     }
 
@@ -70,6 +82,21 @@ public class UserEntity {
     @PreUpdate
     public void preUpdate() {
         this.updatedDateTime = ZonedDateTime.now();
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(this.userRole.toAuthority());
+    }
+
+    @Override
+    public String getUsername() {
+        return this.email;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return Objects.requireNonNull(this.getUserStatus()) == UserStatus.ACTIVE;
     }
 }
 
