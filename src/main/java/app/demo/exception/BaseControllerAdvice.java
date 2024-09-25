@@ -5,14 +5,19 @@ import app.demo.exception.response.BaseResponseStatus;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.NestedExceptionUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import static app.demo.exception.response.BaseResponseStatus.*;
@@ -27,16 +32,20 @@ public class BaseControllerAdvice {
         return new BaseResponse<>(ENTITY_NOT_FOUND);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public BaseResponse<BaseResponseStatus> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        log.error("[MethodArgumentNotValidException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
-        return new BaseResponse<>(NOT_VALID_ERROR);
-    }
-
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public BaseResponse<BaseResponseStatus> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
         log.error("[MissingServletRequestParameterException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getMessage());
         return new BaseResponse<>(NOT_VALID_ERROR);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<BaseResponse<List<String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        List<String> errorMessages = new ArrayList<>();
+
+        ex.getBindingResult().getFieldErrors().forEach(error -> errorMessages.add(error.getDefaultMessage()));
+
+        BaseResponse<List<String>> response = new BaseResponse<>(errorMessages);
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -48,10 +57,14 @@ public class BaseControllerAdvice {
     @ExceptionHandler(BindException.class)
     public BaseResponse<BaseResponseStatus> handleBindException(BindException e) {
         BindingResult bindingResult = e.getBindingResult();
-        String bindCode = Objects.requireNonNull(bindingResult.getFieldError()).getCode();
+        FieldError fieldError = bindingResult.getFieldError();
 
-        if (Objects.requireNonNull(bindCode).equals("NotBlank")) {
-            return new BaseResponse<>(VALID_INPUT_BLANK);
+        if (fieldError != null) {
+            String bindCode = fieldError.getCode();
+
+            if (Objects.requireNonNull(bindCode).equals("NotBlank")) {
+                return new BaseResponse<>(VALID_INPUT_BLANK);
+            }
         }
         return new BaseResponse<>(INVALID_URI_PATH);
     }
