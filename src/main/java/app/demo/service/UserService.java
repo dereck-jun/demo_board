@@ -2,6 +2,7 @@ package app.demo.service;
 
 import app.demo.domain.entity.UserEntity;
 import app.demo.domain.user.User;
+import app.demo.domain.user.UserAuthenticationResponse;
 import app.demo.domain.user.UserLoginRequestBody;
 import app.demo.domain.user.UserRegisterRequestBody;
 import app.demo.exception.BaseException;
@@ -27,12 +28,9 @@ public class UserService implements UserDetailsService {
 
     private final UserEntityRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    /**
-     * 01. 회원 가입
-     * @param userRegisterRequestBody email & password
-     * @return User
-     */
+    // 01. 회원가입
     @Transactional
     public User register(@Valid UserRegisterRequestBody userRegisterRequestBody) {
         userRepository.findByEmail(userRegisterRequestBody.email()).ifPresent(user -> {
@@ -42,21 +40,18 @@ public class UserService implements UserDetailsService {
         // UserEntity.of 메서드로 String 타입의 email, password 를 UserEntity 타입으로 바꿈
         return User.from(userRepository.save(UserEntity.of(userRegisterRequestBody.email(), passwordEncoder.encode(userRegisterRequestBody.password()))));
     }
-
-    /**
-     * 02. 로그인
-     * @param userLoginRequestBody email & password
-     * @return User
-     */
-    public User login(@Valid UserLoginRequestBody userLoginRequestBody) {
+    
+    // 02. 로그인 & 인증 정보 부여
+    public UserAuthenticationResponse login(@Valid UserLoginRequestBody userLoginRequestBody) {
         UserEntity userEntity = userRepository.findByEmail(userLoginRequestBody.email())
-                .orElseThrow(EntityNotFoundException::new);
+                .orElseThrow(() -> new BaseException(LOGIN_FAILED_ERROR));
 
-        if (!userEntity.getPassword().equals(userLoginRequestBody.password())) {
-            throw new EntityNotFoundException();
+        if (passwordEncoder.matches(userLoginRequestBody.password(), userEntity.getPassword())) {
+            String accessToken = jwtService.generateAccessToken(userEntity);
+            return new UserAuthenticationResponse(accessToken);
+        } else {
+            throw new BaseException(LOGIN_FAILED_ERROR);
         }
-
-        return User.from(userEntity);
     }
 
     
@@ -64,7 +59,7 @@ public class UserService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         UserEntity userEntity = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BaseException(ENTITY_NOT_FOUND));
+                .orElseThrow(() -> new BaseException(USER_NOT_FOUND));
 
         if (!userEntity.isEnabled()) {
             throw new BaseException(ACCOUNT_DELETED_ERROR);
