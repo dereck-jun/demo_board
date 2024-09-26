@@ -13,6 +13,5 @@ public record UserRegisterRequestBody(
         @NotBlank
         @Size(min = 8, message = "비밀번호는 최소 8자리 이상이어야 합니다.")
         @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,}$", message = "최소 1개 이상의 대소문자, 숫자, 특수문자가 들어가야 합니다.")
-        String password
-) {
+        String password) {
 }

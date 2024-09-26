@@ -2,7 +2,6 @@ package app.demo.config;
 
 import app.demo.config.filter.JwtAuthenticationFilter;
 import app.demo.config.filter.JwtExceptionFilter;
-import app.demo.config.filter.RegisterAndLoginFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,7 +23,6 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtExceptionFilter jwtExceptionFilter;
-    private final RegisterAndLoginFilter registerAndLoginFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -36,9 +34,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
-                .addFilterBefore(registerAndLoginFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, registerAndLoginFilter.getClass())
-                .addFilterBefore(jwtExceptionFilter, jwtAuthenticationFilter.getClass())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtExceptionFilter, JwtAuthenticationFilter.class)
                 .httpBasic(Customizer.withDefaults());
         return http.build();
     }

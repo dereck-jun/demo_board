@@ -5,6 +5,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.DeserializationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.stereotype.Service;
@@ -20,42 +21,29 @@ public class JwtService {
 
     private static final KeyPair KEY_PAIR = Jwts.SIG.ES256.keyPair().build();
 
-    /**
-     * JWT 토큰 생성
-     * @param userEntity email
-     * @return String JWT Token
-     */
     public String generateAccessToken(UserEntity userEntity) {
         return generateToken(userEntity.getEmail(), userEntity.getUserStatus().toString(), userEntity.getUserRole().toString());
     }
 
-    /**
-     * Jwt 직렬화에 사용된 subject 가져옴
-     * @param accessToken JWT Token
-     * @return subject used for serialization
-     */
     public String getEmailFromToken(String accessToken) {
         return getSubject(accessToken);
     }
 
-    /**
-     * Jwt 직렬화에 사용된 UserStatus 가져옴
-     * @param accessToken JWT Token
-     * @return userStatus used for serialization
-     */
     public String getStatusFromToken(String accessToken) {
         return getUserStatus(accessToken);
     }
 
-    /**
-     * Jwt 직렬화에 사용된 UserRole 가져옴
-     * @param accessToken JWT Token
-     * @return userRole used for serialization
-     */
     public String getRoleFromToken(String accessToken) {
         return getUserRole(accessToken);
     }
 
+    /**
+     * JWT 토큰 생성
+     * @param subject 유저 이메일
+     * @param userStatus 유저 상태(ACTIVE, DELETED)
+     * @param userRole 유저 권한
+     * @return JWT Token
+     */
     private String generateToken(String subject, String userStatus, String userRole) {
         // Jwt 생성 시간과 만료 시간 설정을 위한 Date 객체 생성 후 exp 1시간 설정
         Date now = new Date();
@@ -74,6 +62,11 @@ public class JwtService {
                 .compact();
     }
 
+    /**
+     * JWT에서 subject를 가져옴
+     * @param token
+     * @return JWT에 사용된 subject(Email)
+     */
     private String getSubject(String token) {
         try {
             return Jwts.parser()
@@ -82,9 +75,12 @@ public class JwtService {
                     .parseSignedClaims(token)
                     .getPayload()
                     .getSubject();
-        } catch (JwtException e) {
-            log.error("[Jwt] subject 정보를 가져오는데 실패했습니다. cause: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getCause());
-            throw e;
+        } catch (DeserializationException de){
+            log.error("[DeserializationException] cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(de), de.getMessage());
+            throw de;
+        } catch (JwtException je) {
+            log.error("[Jwt] subject 정보를 가져오는데 실패했습니다. cause: {}, message: {}", NestedExceptionUtils.getMostSpecificCause(je), je.getMessage());
+            throw je;
         }
     }
 
@@ -95,7 +91,7 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload()
-                    .getSubject();
+                    .get("status", String.class);
         } catch (JwtException e) {
             log.error("[Jwt] status 정보를 가져오는데 실패했습니다. cause: {}", NestedExceptionUtils.getMostSpecificCause(e), e.getCause());
             throw e;

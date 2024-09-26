@@ -9,10 +9,11 @@ import org.hibernate.annotations.SQLRestriction;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -28,20 +29,23 @@ public class UserEntity implements UserDetails {
     @Column(name = "user_id")
     private Long id;
 
-    @Column(nullable = false, unique = true)
     @Setter(AccessLevel.PRIVATE)
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
     @Setter(AccessLevel.PRIVATE)
+    @Column(nullable = false)
     private String password;
 
+    @Setter
     @Column(unique = true)
     private String nickname;
 
-    @Column(unique = true)
+    @Setter
+    @Column
     private String phoneNumber;
 
+    @Setter
     @Column
     private String description;
 
@@ -56,18 +60,19 @@ public class UserEntity implements UserDetails {
     private UserRole userRole;
 
     @Column(nullable = false, updatable = false)
-    private ZonedDateTime createdDateTime;
+    private LocalDateTime createdDateTime;
 
     @Column
-    private ZonedDateTime updatedDateTime;
+    private LocalDateTime updatedDateTime;
 
     @Column
-    private ZonedDateTime deletedDateTime;
+    private LocalDateTime deletedDateTime;
 
     public static UserEntity of(String email, String password) {
         UserEntity userEntity = new UserEntity();
         userEntity.setEmail(email);
         userEntity.setPassword(password);
+        userEntity.generateDefaultNickname();
         userEntity.setUserStatus(UserStatus.ACTIVE);
         userEntity.setUserRole(UserRole.USER);
         return userEntity;
@@ -75,13 +80,30 @@ public class UserEntity implements UserDetails {
 
     @PrePersist
     public void prePersist() {
-        this.createdDateTime = ZonedDateTime.now();
+        this.createdDateTime = LocalDateTime.now();
         this.updatedDateTime = this.createdDateTime;
     }
 
     @PreUpdate
     public void preUpdate() {
-        this.updatedDateTime = ZonedDateTime.now();
+        this.updatedDateTime = LocalDateTime.now();
+    }
+
+    @PreRemove
+    public void preRemove() {
+        this.deletedDateTime = LocalDateTime.now();
+    }
+
+    private void generateDefaultNickname() {
+        final String PREFIX = "user_";
+        String randomNickname = UUID.randomUUID().toString().substring(0, 8);
+
+        this.nickname = randomNickname;
+        while (this.nickname.equals(randomNickname)) {
+            randomNickname = UUID.randomUUID().toString().substring(0, 8);
+        }
+
+        this.nickname = PREFIX + randomNickname;
     }
 
     @Override
