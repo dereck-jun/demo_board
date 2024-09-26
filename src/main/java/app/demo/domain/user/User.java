@@ -2,6 +2,7 @@ package app.demo.domain.user;
 
 import app.demo.domain.entity.UserEntity;
 
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 public record User(
@@ -9,8 +10,8 @@ public record User(
     String nickname,
     String phoneNumber,
     String description,
-    ZonedDateTime createdDateTime,
-    ZonedDateTime updatedDateTime) {
+    LocalDateTime createdDateTime,
+    LocalDateTime updatedDateTime) {
 
     public static User from(UserEntity entity) {
         return new User(
