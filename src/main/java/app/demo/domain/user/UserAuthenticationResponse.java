@@ -1,4 +1,6 @@
 package app.demo.domain.user;
 
-public record UserAuthenticationResponse(String accessToken) {
+import org.springframework.data.annotation.ReadOnlyProperty;
+
+public record UserAuthenticationResponse(@ReadOnlyProperty String accessToken) {
 }

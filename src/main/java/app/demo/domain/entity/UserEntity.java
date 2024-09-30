@@ -17,12 +17,12 @@ import java.util.UUID;
 
 @Entity
 @Getter
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @Table(name = "user")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "update user set deleted_date_time = current_timestamp where user_id = ?")
 @SQLRestriction("deleted_date_time is null")
-public class UserEntity implements UserDetails {
+public class UserEntity extends BaseTimeEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,15 +59,6 @@ public class UserEntity implements UserDetails {
     @Column(nullable = false)
     private UserRole userRole;
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdDateTime;
-
-    @Column
-    private LocalDateTime updatedDateTime;
-
-    @Column
-    private LocalDateTime deletedDateTime;
-
     public static UserEntity of(String email, String password) {
         UserEntity userEntity = new UserEntity();
         userEntity.setEmail(email);
@@ -76,22 +67,6 @@ public class UserEntity implements UserDetails {
         userEntity.setUserStatus(UserStatus.ACTIVE);
         userEntity.setUserRole(UserRole.USER);
         return userEntity;
-    }
-
-    @PrePersist
-    public void prePersist() {
-        this.createdDateTime = LocalDateTime.now();
-        this.updatedDateTime = this.createdDateTime;
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedDateTime = LocalDateTime.now();
-    }
-
-    @PreRemove
-    public void preRemove() {
-        this.deletedDateTime = LocalDateTime.now();
     }
 
     private void generateDefaultNickname() {

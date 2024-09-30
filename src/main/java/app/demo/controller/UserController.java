@@ -27,8 +27,8 @@ public class UserController {
         return switch (status) {
             case USER_NOT_FOUND ->
                     new ResponseEntity<>(new BaseResponse<>(USER_NOT_FOUND), status. getStatus());
-            case USER_NOT_ALLOWED_ERROR ->
-                    new ResponseEntity<>(new BaseResponse<>(USER_NOT_ALLOWED_ERROR), status. getStatus());
+            case PRINCIPAL_MISMATCH_ERROR ->
+                    new ResponseEntity<>(new BaseResponse<>(PRINCIPAL_MISMATCH_ERROR), status. getStatus());
             case USER_ALREADY_DELETED_ERROR ->
                     new ResponseEntity<>(new BaseResponse<>(USER_ALREADY_DELETED_ERROR), status. getStatus());
             case INVALID_AUTH_HEADER ->
